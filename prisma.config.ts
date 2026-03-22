@@ -1,5 +1,10 @@
 import path from "node:path"
 import { defineConfig } from "prisma/config"
+import { config } from "dotenv"
+
+config({ path: ".env.local" })
+
+const connectionString = process.env.DIRECT_URL!
 
 export default defineConfig({
   earlyAccess: true,
@@ -7,10 +12,10 @@ export default defineConfig({
   migrate: {
     async adapter() {
       const { PrismaNeon } = await import("@prisma/adapter-neon")
-      const { neon } = await import("@neondatabase/serverless")
-      const connectionString = process.env.DATABASE_URL!
-      const pool = neon(connectionString)
       return new PrismaNeon({ connectionString })
     },
+  },
+  datasource: {
+    url: connectionString,
   },
 })

@@ -5,7 +5,6 @@ import GitHub from "next-auth/providers/github"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
-import { env } from "@/lib/env"
 import { z } from "zod"
 
 const credentialsSchema = z.object({
@@ -22,12 +21,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Google({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     }),
     GitHub({
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
+      clientId: process.env.GITHUB_CLIENT_ID ?? "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
     }),
     Credentials({
       name: "credentials",
@@ -40,36 +39,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null
 
         const { email, password } = parsed.data
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-        })
-
+        const user = await prisma.user.findUnique({ where: { email } })
         if (!user || !user.password) return null
 
         const passwordMatch = await bcrypt.compare(password, user.password)
         if (!passwordMatch) return null
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        }
+        return { id: user.id, name: user.name, email: user.email, image: user.image }
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-      }
+      if (user) token.id = user.id
       return token
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string
-      }
+      if (token && session.user) session.user.id = token.id as string
       return session
     },
   },
