@@ -1,12 +1,11 @@
 import { useState, useCallback } from "react"
 import { useResumeStore } from "@/store/useResumeStore"
-import { AnalysisResult } from "@/types"
+import { AnalysisResult, ResumeObject } from "@/types"
 
 export function useResumeAnalysis() {
   const [error, setError] = useState<string | null>(null)
 
   const {
-    resumeObject,
     setAnalysisStatus,
     setAnalysisResult,
     appendStreamedText,
@@ -14,8 +13,8 @@ export function useResumeAnalysis() {
     setCurrentStep,
   } = useResumeStore()
 
-  const analyze = useCallback(async () => {
-    if (!resumeObject) {
+  const analyze = useCallback(async (resume: ResumeObject) => {
+    if (!resume) {
       setError("No resume data found")
       return
     }
@@ -23,21 +22,22 @@ export function useResumeAnalysis() {
     setError(null)
     resetStream()
     setAnalysisStatus("analyzing")
+    setCurrentStep(3) // go to step 3 to show spinner
 
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          source: resumeObject.source,
-          templateId: resumeObject.templateId,
-          formData: resumeObject.source === "form" ? {
-            personal: resumeObject.personal,
-            experience: resumeObject.experience,
-            education: resumeObject.education,
-            skills: resumeObject.skills,
+          source: resume.source,
+          templateId: resume.templateId,
+          formData: resume.source === "form" ? {
+            personal: resume.personal,
+            experience: resume.experience,
+            education: resume.education,
+            skills: resume.skills,
           } : undefined,
-          rawText: resumeObject.source === "pdf" ? resumeObject.rawText : undefined,
+          rawText: resume.source === "pdf" ? resume.rawText : undefined,
         }),
       })
 
@@ -48,7 +48,6 @@ export function useResumeAnalysis() {
 
       if (!response.body) throw new Error("No response body")
 
-      // Read the stream
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let fullText = ""
@@ -61,17 +60,18 @@ export function useResumeAnalysis() {
         appendStreamedText(chunk)
       }
 
-      // Parse the complete JSON response
-      const result: AnalysisResult = JSON.parse(fullText)
+      // Clean up any markdown code fences Claude might add
+      const cleaned = fullText.replace(/```json|```/g, "").trim()
+      const result: AnalysisResult = JSON.parse(cleaned)
       setAnalysisResult(result)
       setAnalysisStatus("complete")
-      setCurrentStep(3)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong"
+      console.error("Analysis error:", message)
       setError(message)
       setAnalysisStatus("error")
     }
-  }, [resumeObject, setAnalysisStatus, setAnalysisResult, appendStreamedText, resetStream, setCurrentStep])
+  }, [setAnalysisStatus, setAnalysisResult, appendStreamedText, resetStream, setCurrentStep])
 
   return { analyze, error }
 }

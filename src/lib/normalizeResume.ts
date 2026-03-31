@@ -1,4 +1,4 @@
-import { ResumeObject, ResumeFormData, TemplateId } from "@/types"
+import { ResumeObject, ResumeFormData, TemplateId, ExperienceEntry, EducationEntry } from "@/results/types"
 import { generateId } from "@/lib/utils"
 
 export function normalizeFromForm(
@@ -9,11 +9,11 @@ export function normalizeFromForm(
     source: "form",
     templateId,
     personal: formData.personal,
-    experience: formData.experience.map((exp) => ({
+    experience: (formData.experience || []).map((exp: ExperienceEntry) => ({
       ...exp,
       id: exp.id || generateId(),
     })),
-    education: formData.education.map((edu) => ({
+    education: (formData.education || []).map((edu: EducationEntry) => ({
       ...edu,
       id: edu.id || generateId(),
     })),
