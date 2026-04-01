@@ -1,7 +1,18 @@
 import { TemplateId } from "@/types"
+import { ResumeObject } from "@/types"
 import { ReactElement } from "react"
+import ClassicTemplate from "./ClassicTemplate"
+import ModernTemplate from "./ModernTemplate"
+import MinimalTemplate from "./MinimalTemplate"
+import CreativeTemplate from "./CreativeTemplate"
 
-export function getTemplateComponent(templateId: TemplateId): (props: any) => ReactElement {
-  // Templates will be implemented in Phase 7
-  return () => null as any
+const templateMap = {
+  classic: ClassicTemplate,
+  modern: ModernTemplate,
+  minimal: MinimalTemplate,
+  creative: CreativeTemplate,
+}
+
+export function getTemplateComponent(templateId: TemplateId): (props: { resume: ResumeObject }) => ReactElement {
+  return templateMap[templateId] ?? ClassicTemplate
 }
